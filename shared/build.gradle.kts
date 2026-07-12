@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -23,6 +24,13 @@ kotlin {
             implementation(libs.koog.agents)
             implementation(libs.koog.agents.additions)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.richtext.commonmark)
+            implementation(libs.richtext.ui.material3)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.compose.material.icons)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
