@@ -9,11 +9,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.compose.viewmodel.koinViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun ChatScreen(viewModel: ChatViewModel = viewModel { ChatViewModel() }) {
+fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
     val threads by viewModel.threads.collectAsState()
     val activeThreadId by viewModel.activeThreadId.collectAsState()
     val messages = viewModel.activeMessages
@@ -40,73 +40,81 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel { ChatViewModel() }) {
 
         VerticalDivider()
 
-        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            TopAppBar(
-                title = { Text("KoogStudio") },
-            )
+        Surface(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("KoogStudio") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
 
-            HorizontalDivider()
+                HorizontalDivider()
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                if (messages.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "KoogStudio",
-                            style = MaterialTheme.typography.headlineLarge,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = selectedModel.ifEmpty { "No model selected" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(messages, key = { it.id }) { message ->
-                            ChatBubble(message)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    if (messages.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "KoogStudio",
+                                style = MaterialTheme.typography.headlineLarge,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = selectedModel.ifEmpty { "No model selected" },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(messages, key = { it.id }) { message ->
+                                ChatBubble(message)
+                            }
 
-                        if (isLoading) {
-                            item {
-                                TypingIndicator()
+                            if (isLoading) {
+                                item {
+                                    TypingIndicator()
+                                }
                             }
                         }
                     }
                 }
+
+                HorizontalDivider()
+
+                ChatInputBar(
+                    inputText = viewModel.inputText.collectAsState().value,
+                    onInputChange = viewModel::onInputChange,
+                    onSend = {
+                        viewModel.sendMessage()
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(messages.size)
+                        }
+                    },
+                    isLoading = isLoading,
+                    models = models,
+                    selectedModel = selectedModel,
+                    onModelSelected = viewModel::onModelSelected,
+                    selectedMode = selectedMode,
+                    onModeSelected = viewModel::onModeSelected,
+                )
             }
-
-            HorizontalDivider()
-
-            ChatInputBar(
-                inputText = viewModel.inputText.collectAsState().value,
-                onInputChange = viewModel::onInputChange,
-                onSend = {
-                    viewModel.sendMessage()
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(messages.size)
-                    }
-                },
-                isLoading = isLoading,
-                models = models,
-                selectedModel = selectedModel,
-                onModelSelected = viewModel::onModelSelected,
-                selectedMode = selectedMode,
-                onModeSelected = viewModel::onModeSelected,
-            )
         }
     }
 }

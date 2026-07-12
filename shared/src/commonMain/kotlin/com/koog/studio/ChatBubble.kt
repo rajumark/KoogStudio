@@ -4,8 +4,6 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.halilibo.richtext.commonmark.Markdown
@@ -58,20 +55,14 @@ fun ChatBubble(message: ChatMessage) {
                             color = contentColor,
                         )
                     } else {
-                        RichText(
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
-                                color = contentColor,
-                            )
-                        ) {
+                        RichText {
                             Markdown(message.content)
                         }
                     }
                 }
 
                 if (isHovered) {
-                    IconButton(
+                    Surface(
                         onClick = {
                             clipboardManager.setText(AnnotatedString(message.content))
                         },
@@ -79,13 +70,16 @@ fun ChatBubble(message: ChatMessage) {
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
                             .size(28.dp),
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "Copy",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
+                            )
+                        }
                     }
                 }
             }

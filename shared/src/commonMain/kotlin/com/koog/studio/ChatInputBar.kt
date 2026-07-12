@@ -33,97 +33,95 @@ fun ChatInputBar(
         }
     }
 
-    Surface(tonalElevation = 2.dp) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            OutlinedTextField(
+                value = textFieldValue,
+                onValueChange = { newValue ->
+                    textFieldValue = newValue
+                    onInputChange(newValue.text)
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                OutlinedTextField(
-                    value = textFieldValue,
-                    onValueChange = { newValue ->
-                        textFieldValue = newValue
-                        onInputChange(newValue.text)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
-                                onSend()
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    placeholder = { Text("Message KoogStudio...") },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { onSend() }),
-                    minLines = 1,
-                    maxLines = 5,
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = onSend,
-                    enabled = inputText.isNotBlank() && !isLoading,
-                ) {
-                    Text(if (isLoading) "..." else "Send")
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box {
-                    OutlinedButton(
-                        onClick = { modelMenuExpanded = true },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = selectedModel.ifEmpty { "Select model" },
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = modelMenuExpanded,
-                        onDismissRequest = { modelMenuExpanded = false },
-                    ) {
-                        if (models.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("No models found") },
-                                onClick = { modelMenuExpanded = false },
-                            )
+                    .weight(1f)
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
+                            onSend()
+                            true
                         } else {
-                            models.forEach { model ->
-                                DropdownMenuItem(
-                                    text = { Text(model) },
-                                    onClick = {
-                                        onModelSelected(model)
-                                        modelMenuExpanded = false
-                                    },
-                                )
-                            }
+                            false
+                        }
+                    },
+                placeholder = { Text("Message KoogStudio...") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { onSend() }),
+                minLines = 1,
+                maxLines = 5,
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Button(
+                onClick = onSend,
+                enabled = inputText.isNotBlank() && !isLoading,
+            ) {
+                Text(if (isLoading) "..." else "Send")
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box {
+                OutlinedButton(
+                    onClick = { modelMenuExpanded = true },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = selectedModel.ifEmpty { "Select model" },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = modelMenuExpanded,
+                    onDismissRequest = { modelMenuExpanded = false },
+                ) {
+                    if (models.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No models found") },
+                            onClick = { modelMenuExpanded = false },
+                        )
+                    } else {
+                        models.forEach { model ->
+                            DropdownMenuItem(
+                                text = { Text(model) },
+                                onClick = {
+                                    onModelSelected(model)
+                                    modelMenuExpanded = false
+                                },
+                            )
                         }
                     }
                 }
+            }
 
-                val modes = listOf("Chat Mode", "Agent Mode")
-                modes.forEach { mode ->
-                    FilterChip(
-                        selected = selectedMode == mode,
-                        onClick = { onModeSelected(mode) },
-                        label = { Text(mode, style = MaterialTheme.typography.labelSmall) },
-                        enabled = mode == "Chat Mode",
-                    )
-                }
+            val modes = listOf("Chat Mode", "Agent Mode")
+            modes.forEach { mode ->
+                FilterChip(
+                    selected = selectedMode == mode,
+                    onClick = { onModeSelected(mode) },
+                    label = { Text(mode, style = MaterialTheme.typography.labelSmall) },
+                    enabled = mode == "Chat Mode",
+                )
             }
         }
     }

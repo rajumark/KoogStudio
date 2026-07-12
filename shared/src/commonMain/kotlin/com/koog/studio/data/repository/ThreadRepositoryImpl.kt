@@ -1,10 +1,12 @@
-package com.koog.studio
+package com.koog.studio.data.repository
 
+import com.koog.studio.Thread
+import com.koog.studio.domain.repository.ThreadRepository
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
-object ThreadStore {
+class ThreadRepositoryImpl : ThreadRepository {
 
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
@@ -20,7 +22,7 @@ object ThreadStore {
 
     private val threadsFile get() = File(appDir, "threads.json")
 
-    fun loadThreads(): List<Thread> {
+    override fun loadThreads(): List<Thread> {
         return try {
             if (threadsFile.exists()) {
                 json.decodeFromString<List<Thread>>(threadsFile.readText())
@@ -32,7 +34,7 @@ object ThreadStore {
         }
     }
 
-    fun saveThreads(threads: List<Thread>) {
+    override fun saveThreads(threads: List<Thread>) {
         try {
             threadsFile.writeText(json.encodeToString(threads))
         } catch (_: Exception) {}

@@ -1,21 +1,21 @@
 package com.koog.studio
 
 import ai.koog.agents.core.agent.AIAgent
-import ai.koog.prompt.llm.LLMCapability
-import ai.koog.prompt.llm.LLMProvider
-import ai.koog.prompt.llm.LLModel
-import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
-import ai.koog.prompt.executor.ollama.client.OllamaClient
+import com.koog.studio.domain.repository.OllamaRepository
+import com.koog.studio.domain.repository.ThreadRepository
+import com.koog.studio.domain.repository.UserPreferencesRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(
+    private val threadRepository: ThreadRepository,
+    private val preferencesRepository: UserPreferencesRepository,
+    private val ollamaRepository: OllamaRepository,
+) : ViewModel() {
 
     private val _threads = MutableStateFlow<List<Thread>>(emptyList())
     val threads: StateFlow<List<Thread>> = _threads.asStateFlow()
@@ -38,18 +38,18 @@ class ChatViewModel : ViewModel() {
     private val _models = MutableStateFlow<List<String>>(emptyList())
     val models: StateFlow<List<String>> = _models.asStateFlow()
 
-    private val _selectedModel = MutableStateFlow(UserPreferences.selectedModel)
+    private val _selectedModel = MutableStateFlow(preferencesRepository.selectedModel)
     val selectedModel: StateFlow<String> = _selectedModel.asStateFlow()
 
-    private val _selectedMode = MutableStateFlow(UserPreferences.selectedMode)
+    private val _selectedMode = MutableStateFlow(preferencesRepository.selectedMode)
     val selectedMode: StateFlow<String> = _selectedMode.asStateFlow()
 
-    private val ollamaClient = OllamaClient()
-
-    private var agent: AIAgent<String, String> = createAgent(_selectedModel.value.ifEmpty { "gemma3:4b" })
+    private var agent: AIAgent<String, String> = ollamaRepository.createAgent(
+        _selectedModel.value.ifEmpty { "gemma3:4b" }
+    )
 
     init {
-        val saved = ThreadStore.loadThreads()
+        val saved = threadRepository.loadThreads()
         if (saved.isNotEmpty()) {
             _threads.value = saved
             _activeThreadId.value = saved.last().id
@@ -59,25 +59,8 @@ class ChatViewModel : ViewModel() {
         fetchModels()
     }
 
-    private fun createAgent(modelId: String): AIAgent<String, String> {
-        val model = LLModel(
-            provider = LLMProvider.Ollama,
-            id = modelId,
-            capabilities = listOf(
-                LLMCapability.Temperature,
-                LLMCapability.Schema.JSON.Basic,
-            ),
-            contextLength = 131_072,
-        )
-        return AIAgent(
-            promptExecutor = MultiLLMPromptExecutor(ollamaClient),
-            systemPrompt = "You are a helpful AI assistant. Answer concisely and clearly.",
-            llmModel = model,
-        )
-    }
-
     private fun persistThreads() {
-        ThreadStore.saveThreads(_threads.value)
+        threadRepository.saveThreads(_threads.value)
     }
 
     fun createNewThread() {
@@ -99,41 +82,25 @@ class ChatViewModel : ViewModel() {
 
     fun onModelSelected(model: String) {
         _selectedModel.value = model
-        UserPreferences.selectedModel = model
-        agent = createAgent(model)
+        preferencesRepository.selectedModel = model
+        agent = ollamaRepository.createAgent(model)
     }
 
     fun onModeSelected(mode: String) {
         _selectedMode.value = mode
-        UserPreferences.selectedMode = mode
+        preferencesRepository.selectedMode = mode
     }
 
     fun fetchModels() {
         viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    val process = ProcessBuilder("ollama", "list")
-                        .redirectErrorStream(true)
-                        .start()
-                    val output = process.inputStream.bufferedReader().readText()
-                    process.waitFor()
-                    output
-                }
-                val modelNames = result.lines()
-                    .drop(1)
-                    .mapNotNull { line ->
-                        line.split("\\s+".toRegex()).firstOrNull()?.takeIf { it.isNotEmpty() }
-                    }
-                _models.value = modelNames
+            val modelNames = ollamaRepository.fetchAvailableModels()
+            _models.value = modelNames
 
-                val saved = _selectedModel.value
-                if (saved.isNotEmpty() && saved in modelNames) {
-                    onModelSelected(saved)
-                } else if (modelNames.isNotEmpty()) {
-                    onModelSelected(modelNames.first())
-                }
-            } catch (e: Exception) {
-                _models.value = emptyList()
+            val saved = _selectedModel.value
+            if (saved.isNotEmpty() && saved in modelNames) {
+                onModelSelected(saved)
+            } else if (modelNames.isNotEmpty()) {
+                onModelSelected(modelNames.first())
             }
         }
     }
