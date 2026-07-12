@@ -120,13 +120,6 @@ fun ChatInputBar(
             }
 
             if (projectDir != null) {
-                Text(
-                    text = java.io.File(projectDir).absolutePath,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
                 IconButton(
                     onClick = { onProjectDirSelected(null) },
                     modifier = Modifier.size(20.dp),

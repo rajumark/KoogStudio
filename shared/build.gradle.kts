@@ -23,6 +23,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.koog.agents)
             implementation(libs.koog.agents.additions)
+            implementation(libs.koog.agents.ext)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.richtext.commonmark)

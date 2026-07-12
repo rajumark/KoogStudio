@@ -7,12 +7,14 @@ import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.executor.ollama.client.OllamaClient
 import com.koog.studio.domain.repository.OllamaRepository
+import com.koog.studio.tools.createToolRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class OllamaRepositoryImpl : OllamaRepository {
 
     private val ollamaClient = OllamaClient()
+    private val toolRegistry = createToolRegistry()
 
     override fun createAgent(modelId: String): AIAgent<String, String> {
         val model = LLModel(
@@ -28,6 +30,7 @@ class OllamaRepositoryImpl : OllamaRepository {
             promptExecutor = MultiLLMPromptExecutor(ollamaClient),
             systemPrompt = "You are a helpful AI assistant. Answer concisely and clearly.",
             llmModel = model,
+            toolRegistry = toolRegistry,
         )
     }
 
