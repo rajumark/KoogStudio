@@ -24,6 +24,8 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
+    val activeThread = threads.find { it.id == activeThreadId }
+
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.lastIndex)
@@ -113,6 +115,8 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
                     onModelSelected = viewModel::onModelSelected,
                     selectedMode = selectedMode,
                     onModeSelected = viewModel::onModeSelected,
+                    projectDir = activeThread?.projectDir,
+                    onProjectDirSelected = { viewModel.setProjectDir(it) },
                 )
             }
         }

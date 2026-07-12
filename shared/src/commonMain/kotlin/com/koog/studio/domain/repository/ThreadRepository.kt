@@ -6,4 +6,5 @@ interface ThreadRepository {
     fun loadThreads(): List<Thread>
     fun saveThread(thread: Thread)
     fun deleteThread(threadId: String)
+    fun updateProjectDir(threadId: String, projectDir: String?)
 }

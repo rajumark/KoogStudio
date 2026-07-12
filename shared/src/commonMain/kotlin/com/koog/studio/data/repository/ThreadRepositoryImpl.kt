@@ -51,6 +51,7 @@ class ThreadRepositoryImpl : ThreadRepository {
                 id = thread.id,
                 title = thread.title,
                 createdAt = thread.createdAt,
+                projectDir = thread.projectDir,
             )
             File(dir, "metadata.json").writeText(json.encodeToString(metadata))
 
@@ -65,6 +66,18 @@ class ThreadRepositoryImpl : ThreadRepository {
                 dir.listFiles()?.forEach { it.delete() }
                 dir.delete()
             }
+        } catch (_: Exception) {}
+    }
+
+    override fun updateProjectDir(threadId: String, projectDir: String?) {
+        try {
+            val dir = File(threadsDir, threadId)
+            val metadataFile = File(dir, "metadata.json")
+            if (!metadataFile.exists()) return
+
+            val metadata = json.decodeFromString<ThreadMetadata>(metadataFile.readText())
+            val updated = metadata.copy(projectDir = projectDir)
+            metadataFile.writeText(json.encodeToString(updated))
         } catch (_: Exception) {}
     }
 
@@ -87,6 +100,7 @@ class ThreadRepositoryImpl : ThreadRepository {
                 title = metadata.title,
                 messages = messages,
                 createdAt = metadata.createdAt,
+                projectDir = metadata.projectDir,
             )
         } catch (e: Exception) {
             null

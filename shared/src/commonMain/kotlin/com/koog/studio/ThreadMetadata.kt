@@ -7,4 +7,5 @@ data class ThreadMetadata(
     val id: String,
     val title: String,
     val createdAt: Long,
+    val projectDir: String? = null,
 )

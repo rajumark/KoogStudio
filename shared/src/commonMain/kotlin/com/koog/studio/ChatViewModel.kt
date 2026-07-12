@@ -63,6 +63,19 @@ class ChatViewModel(
         threadRepository.saveThread(thread)
     }
 
+    fun setProjectDir(dir: String?) {
+        val threadId = _activeThreadId.value ?: return
+        _threads.value = _threads.value.map {
+            if (it.id == threadId) it.copy(projectDir = dir) else it
+        }
+        threadRepository.updateProjectDir(threadId, dir)
+    }
+
+    fun getActiveThreadProjectDir(): String? {
+        val threadId = _activeThreadId.value ?: return null
+        return _threads.value.find { it.id == threadId }?.projectDir
+    }
+
     fun createNewThread() {
         val thread = Thread()
         _threads.value = _threads.value + thread

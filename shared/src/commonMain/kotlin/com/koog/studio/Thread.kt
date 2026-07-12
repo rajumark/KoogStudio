@@ -9,4 +9,5 @@ data class Thread(
     val title: String = "New Chat",
     val messages: List<ChatMessage> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
+    val projectDir: String? = null,
 )

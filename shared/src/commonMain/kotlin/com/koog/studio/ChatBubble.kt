@@ -6,12 +6,14 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.halilibo.richtext.commonmark.Markdown
@@ -55,8 +57,12 @@ fun ChatBubble(message: ChatMessage) {
                             color = contentColor,
                         )
                     } else {
-                        RichText {
-                            Markdown(message.content)
+                        CompositionLocalProvider(
+                            LocalTextStyle provides MaterialTheme.typography.bodyMedium.copy(color = contentColor)
+                        ) {
+                            RichText {
+                                Markdown(message.content)
+                            }
                         }
                     }
                 }
