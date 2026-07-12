@@ -59,8 +59,8 @@ class ChatViewModel(
         fetchModels()
     }
 
-    private fun persistThreads() {
-        threadRepository.saveThreads(_threads.value)
+    private fun persistThread(thread: Thread) {
+        threadRepository.saveThread(thread)
     }
 
     fun createNewThread() {
@@ -68,7 +68,7 @@ class ChatViewModel(
         _threads.value = _threads.value + thread
         _activeThreadId.value = thread.id
         _inputText.value = ""
-        persistThreads()
+        persistThread(thread)
     }
 
     fun selectThread(id: String) {
@@ -133,19 +133,19 @@ class ChatViewModel(
     }
 
     private fun appendMessageToThread(threadId: String, message: ChatMessage) {
-        _threads.value = _threads.value.map { thread ->
-            if (thread.id == threadId) {
-                val updatedMessages = thread.messages + message
-                val title = if (thread.messages.isEmpty() && message.isUser) {
-                    message.content.take(40).let { if (it.length < message.content.length) "$it..." else it }
-                } else {
-                    thread.title
-                }
-                thread.copy(messages = updatedMessages, title = title)
+        val updatedThread = _threads.value.find { it.id == threadId }?.let { thread ->
+            val updatedMessages = thread.messages + message
+            val title = if (thread.messages.isEmpty() && message.isUser) {
+                message.content.take(40).let { if (it.length < message.content.length) "$it..." else it }
             } else {
-                thread
+                thread.title
             }
+            thread.copy(messages = updatedMessages, title = title)
+        } ?: return
+
+        _threads.value = _threads.value.map {
+            if (it.id == threadId) updatedThread else it
         }
-        persistThreads()
+        persistThread(updatedThread)
     }
 }
