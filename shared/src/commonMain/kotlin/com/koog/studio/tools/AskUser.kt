@@ -17,7 +17,6 @@ object AskUser : SimpleTool<AskUser.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Asking user...")
         println(args.message)
         return readln()
     }

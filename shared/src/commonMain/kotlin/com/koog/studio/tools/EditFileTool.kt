@@ -34,7 +34,6 @@ object EditFileTool : SimpleTool<EditFileTool.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Editing ${args.path.substringAfterLast("/")}")
         val file = File(args.path)
         
         return try {

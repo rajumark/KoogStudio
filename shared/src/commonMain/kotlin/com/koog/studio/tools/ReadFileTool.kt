@@ -31,7 +31,6 @@ object ReadFileTool : SimpleTool<ReadFileTool.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Reading ${args.path.substringAfterLast("/")}")
         val file = File(args.path)
         
         if (!file.exists()) {

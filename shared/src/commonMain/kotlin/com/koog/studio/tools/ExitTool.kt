@@ -16,8 +16,5 @@ object ExitTool : SimpleTool<ExitTool.Args>(
         val message: String
     )
 
-    override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Finishing up...")
-        return "DONE"
-    }
+    override suspend fun execute(args: Args): String = "DONE"
 }

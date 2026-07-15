@@ -16,9 +16,5 @@ object SayToUser : SimpleTool<SayToUser.Args>(
         val message: String
     )
 
-    override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Speaking...")
-        println("Agent says: ${args.message}")
-        return "DONE"
-    }
+override suspend fun execute(args: Args): String = args.message
 }

@@ -35,27 +35,58 @@ class ChatViewModel(
     private val _agentStatus = MutableStateFlow<String?>(null)
     val agentStatus: StateFlow<String?> = _agentStatus.asStateFlow()
 
+    private val _agentLog = MutableStateFlow<List<String>>(emptyList())
+    val agentLog: StateFlow<List<String>> = _agentLog.asStateFlow()
+
     private val _inputText = MutableStateFlow("")
     val inputText: StateFlow<String> = _inputText.asStateFlow()
 
-    private val _selectedModel = MutableStateFlow("qwen3.5:latest")
+    private val _selectedModel = MutableStateFlow("gemma4:12b")
     val selectedModel: StateFlow<String> = _selectedModel.asStateFlow()
 
-    private var agent: AIAgent<String, String> = ollamaRepository.createAgent("qwen3.5:latest")
+    private val _availableModels = MutableStateFlow<List<String>>(emptyList())
+    val availableModels: StateFlow<List<String>> = _availableModels.asStateFlow()
+
+    private val _projectDir = MutableStateFlow<String?>(null)
+    val projectDir: StateFlow<String?> = _projectDir.asStateFlow()
+
+    private var agent: AIAgent<String, String> = ollamaRepository.createAgent("gemma4:12b")
     private var agentJob: Job? = null
 
     init {
         AgentStatusProvider.onStatusChange = { status ->
             _agentStatus.value = status
         }
+        AgentStatusProvider.onLog = { entry ->
+            _agentLog.value = _agentLog.value + entry
+        }
+
+        loadModels()
 
         val saved = threadRepository.loadThreads()
         if (saved.isNotEmpty()) {
             _threads.value = saved
             _activeThreadId.value = saved.last().id
+            _projectDir.value = saved.last().projectDir
         } else {
             createNewThread()
         }
+    }
+
+    private fun loadModels() {
+        viewModelScope.launch {
+            val models = ollamaRepository.fetchAvailableModels()
+            _availableModels.value = models
+            if (models.isNotEmpty() && models.none { it == _selectedModel.value }) {
+                _selectedModel.value = models.first()
+                agent = ollamaRepository.createAgent(models.first())
+            }
+        }
+    }
+
+    fun selectModel(model: String) {
+        _selectedModel.value = model
+        agent = ollamaRepository.createAgent(model)
     }
 
     private fun persistThread(thread: Thread) {
@@ -63,16 +94,9 @@ class ChatViewModel(
     }
 
     fun setProjectDir(dir: String?) {
+        _projectDir.value = dir
         val threadId = _activeThreadId.value ?: return
-        _threads.value = _threads.value.map {
-            if (it.id == threadId) it.copy(projectDir = dir) else it
-        }
         threadRepository.updateProjectDir(threadId, dir)
-    }
-
-    fun getActiveThreadProjectDir(): String? {
-        val threadId = _activeThreadId.value ?: return null
-        return _threads.value.find { it.id == threadId }?.projectDir
     }
 
     fun createNewThread() {
@@ -86,6 +110,22 @@ class ChatViewModel(
     fun selectThread(id: String) {
         _activeThreadId.value = id
         _inputText.value = ""
+        val thread = _threads.value.find { it.id == id }
+        _projectDir.value = thread?.projectDir
+    }
+
+    fun deleteThread(id: String) {
+        val updated = _threads.value.filter { it.id != id }
+        _threads.value = updated
+        threadRepository.deleteThread(id)
+        if (_activeThreadId.value == id) {
+            if (updated.isNotEmpty()) {
+                _activeThreadId.value = updated.last().id
+                _projectDir.value = updated.last().projectDir
+            } else {
+                createNewThread()
+            }
+        }
     }
 
     fun onInputChange(text: String) {
@@ -109,6 +149,7 @@ class ChatViewModel(
         _inputText.value = ""
         _isLoading.value = true
         _agentStatus.value = "Thinking..."
+        _agentLog.value = emptyList()
 
         agentJob = viewModelScope.launch {
             try {

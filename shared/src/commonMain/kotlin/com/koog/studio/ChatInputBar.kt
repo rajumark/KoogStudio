@@ -1,20 +1,26 @@
 package com.koog.studio
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import javax.swing.JFileChooser
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ChatInputBar(
@@ -25,11 +31,11 @@ fun ChatInputBar(
     isLoading: Boolean,
     agentStatus: String?,
     selectedModel: String,
-    projectDir: String?,
-    onProjectDirSelected: (String?) -> Unit,
+    availableModels: List<String>,
+    onModelSelected: (String) -> Unit,
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue(inputText)) }
-    val coroutineScope = rememberCoroutineScope()
+    var showModelMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(inputText) {
         if (textFieldValue.text != inputText) {
@@ -38,40 +44,17 @@ fun ChatInputBar(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        if (isLoading && agentStatus != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(14.dp),
-                    strokeWidth = 2.dp,
-                )
-                Text(
-                    text = agentStatus,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Bottom,
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
-                value = textFieldValue,
-                onValueChange = { newValue ->
-                    textFieldValue = newValue
-                    onInputChange(newValue.text)
-                },
+            Box(
                 modifier = Modifier
                     .weight(1f)
+                    .height(36.dp)
+                    .background(Color(0xFFF5F5F5))
                     .onPreviewKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
                             onSend()
@@ -80,30 +63,71 @@ fun ChatInputBar(
                             false
                         }
                     },
-                placeholder = { Text("Message KoogStudio...") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSend() }),
-                minLines = 1,
-                maxLines = 5,
-            )
+            ) {
+                BasicTextField(
+                    value = textFieldValue,
+                    onValueChange = { newValue ->
+                        textFieldValue = newValue
+                        onInputChange(newValue.text)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    textStyle = TextStyle(
+                        fontSize = 13.sp,
+                        color = Color(0xFF171717),
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(Color(0xFF171717)),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { onSend() }),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            if (textFieldValue.text.isEmpty()) {
+                                Text(
+                                    text = "Message...",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFFAAAAAA),
+                                )
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+            }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
             if (isLoading) {
-                Button(
-                    onClick = onStop,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                    ),
+                Box(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .background(Color(0xFFEEEEEE))
+                        .clickable { onStop() }
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("Stop")
+                    Text(
+                        text = "Stop",
+                        fontSize = 12.sp,
+                        color = Color(0xFF666666),
+                    )
                 }
             } else {
-                Button(
-                    onClick = onSend,
-                    enabled = inputText.isNotBlank(),
+                Box(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .background(if (inputText.isNotBlank()) Color(0xFF171717) else Color(0xFFF0F0F0))
+                        .clickable(enabled = inputText.isNotBlank()) { onSend() }
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("Send")
+                    Text(
+                        text = "Send",
+                        fontSize = 12.sp,
+                        color = if (inputText.isNotBlank()) Color.White else Color(0xFFBBBBBB),
+                    )
                 }
             }
         }
@@ -111,47 +135,44 @@ fun ChatInputBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(
-                onClick = {
-                    coroutineScope.launch {
-                        val dir = withContext(Dispatchers.IO) {
-                            val chooser = JFileChooser().apply {
-                                fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
-                                dialogTitle = "Select Project Folder"
-                                currentDirectory = projectDir?.let { java.io.File(it) }
-                            }
-                            val result = chooser.showOpenDialog(null)
-                            if (result == JFileChooser.APPROVE_OPTION) {
-                                chooser.selectedFile.absolutePath
-                            } else {
-                                null
-                            }
-                        }
-                        if (dir != null) {
-                            onProjectDirSelected(dir)
-                        }
-                    }
-                },
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            ) {
-                val dirName = projectDir?.let { java.io.File(it).name } ?: "Project"
-                Text(
-                    text = dirName,
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-            }
-
-            if (projectDir != null) {
-                IconButton(
-                    onClick = { onProjectDirSelected(null) },
-                    modifier = Modifier.size(20.dp),
+            Box {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFF0F0F0))
+                        .clickable { showModelMenu = true }
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
                 ) {
-                    Text("x", style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        text = selectedModel,
+                        fontSize = 10.sp,
+                        color = Color(0xFF666666),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showModelMenu,
+                    onDismissRequest = { showModelMenu = false },
+                ) {
+                    availableModels.forEach { model ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = model,
+                                    fontSize = 11.sp,
+                                    color = if (model == selectedModel) Color(0xFF171717) else Color(0xFF666666),
+                                )
+                            },
+                            onClick = {
+                                onModelSelected(model)
+                                showModelMenu = false
+                            },
+                        )
+                    }
                 }
             }
         }

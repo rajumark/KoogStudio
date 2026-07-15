@@ -39,7 +39,6 @@ object ListDirectoryTool : SimpleTool<ListDirectoryTool.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Listing ${args.absolutePath.substringAfterLast("/")}")
         val dir = File(args.absolutePath)
         
         if (!dir.exists()) {

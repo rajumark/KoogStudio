@@ -33,7 +33,6 @@ object ExecuteCommandTool : SimpleTool<ExecuteCommandTool.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Running: ${args.command.take(40)}")
         val dir = File(args.workingDirectory)
 
         if (!dir.exists()) {

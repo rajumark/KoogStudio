@@ -28,7 +28,6 @@ object WriteFileTool : SimpleTool<WriteFileTool.Args>(
     )
 
     override suspend fun execute(args: Args): String {
-        AgentStatusProvider.notify("Writing ${args.path.substringAfterLast("/")}")
         if (args.content.isEmpty()) {
             return "Error: Content must not be empty"
         }
