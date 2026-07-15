@@ -28,7 +28,7 @@ class OllamaRepositoryImpl : OllamaRepository {
         )
         return AIAgent(
             promptExecutor = MultiLLMPromptExecutor(ollamaClient),
-            systemPrompt = "You are a helpful AI assistant. Answer concisely and clearly.",
+            systemPrompt = "You are a helpful AI assistant. You have access to tools for file operations and user interaction. Use tools when needed to help the user.",
             llmModel = model,
             toolRegistry = toolRegistry,
         )

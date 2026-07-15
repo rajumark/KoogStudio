@@ -18,9 +18,8 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
     val activeThreadId by viewModel.activeThreadId.collectAsState()
     val messages = viewModel.activeMessages
     val isLoading by viewModel.isLoading.collectAsState()
-    val models by viewModel.models.collectAsState()
+    val agentStatus by viewModel.agentStatus.collectAsState()
     val selectedModel by viewModel.selectedModel.collectAsState()
-    val selectedMode by viewModel.selectedMode.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -73,7 +72,7 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = selectedModel.ifEmpty { "No model selected" },
+                                text = selectedModel,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -109,12 +108,10 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
                             listState.animateScrollToItem(messages.size)
                         }
                     },
+                    onStop = viewModel::stopAgent,
                     isLoading = isLoading,
-                    models = models,
+                    agentStatus = agentStatus,
                     selectedModel = selectedModel,
-                    onModelSelected = viewModel::onModelSelected,
-                    selectedMode = selectedMode,
-                    onModeSelected = viewModel::onModeSelected,
                     projectDir = activeThread?.projectDir,
                     onProjectDirSelected = { viewModel.setProjectDir(it) },
                 )

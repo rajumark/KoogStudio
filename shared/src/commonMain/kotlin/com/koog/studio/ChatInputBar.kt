@@ -15,24 +15,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.swing.JFileChooser
-import javax.swing.filechooser.FileSystemView
 
 @Composable
 fun ChatInputBar(
     inputText: String,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
+    onStop: () -> Unit,
     isLoading: Boolean,
-    models: List<String>,
+    agentStatus: String?,
     selectedModel: String,
-    onModelSelected: (String) -> Unit,
-    selectedMode: String,
-    onModeSelected: (String) -> Unit,
     projectDir: String?,
     onProjectDirSelected: (String?) -> Unit,
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue(inputText)) }
-    var modelMenuExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(inputText) {
@@ -42,6 +38,26 @@ fun ChatInputBar(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
+        if (isLoading && agentStatus != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                )
+                Text(
+                    text = agentStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -73,11 +89,22 @@ fun ChatInputBar(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Button(
-                onClick = onSend,
-                enabled = inputText.isNotBlank() && !isLoading,
-            ) {
-                Text(if (isLoading) "..." else "Send")
+            if (isLoading) {
+                Button(
+                    onClick = onStop,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text("Stop")
+                }
+            } else {
+                Button(
+                    onClick = onSend,
+                    enabled = inputText.isNotBlank(),
+                ) {
+                    Text("Send")
+                }
             }
         }
 
@@ -126,50 +153,6 @@ fun ChatInputBar(
                 ) {
                     Text("x", style = MaterialTheme.typography.labelSmall)
                 }
-            }
-
-            Box {
-                OutlinedButton(
-                    onClick = { modelMenuExpanded = true },
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Text(
-                        text = selectedModel.ifEmpty { "Select model" },
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = modelMenuExpanded,
-                    onDismissRequest = { modelMenuExpanded = false },
-                ) {
-                    if (models.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No models found") },
-                            onClick = { modelMenuExpanded = false },
-                        )
-                    } else {
-                        models.forEach { model ->
-                            DropdownMenuItem(
-                                text = { Text(model) },
-                                onClick = {
-                                    onModelSelected(model)
-                                    modelMenuExpanded = false
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-
-            val modes = listOf("Chat Mode", "Agent Mode")
-            modes.forEach { mode ->
-                FilterChip(
-                    selected = selectedMode == mode,
-                    onClick = { onModeSelected(mode) },
-                    label = { Text(mode, style = MaterialTheme.typography.labelSmall) },
-                    enabled = mode == "Chat Mode",
-                )
             }
         }
     }

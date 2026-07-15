@@ -3,9 +3,10 @@ package com.koog.studio
 import ai.koog.agents.core.agent.AIAgent
 import com.koog.studio.domain.repository.OllamaRepository
 import com.koog.studio.domain.repository.ThreadRepository
-import com.koog.studio.domain.repository.UserPreferencesRepository
+import com.koog.studio.tools.AgentStatusProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,6 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(
     private val threadRepository: ThreadRepository,
-    private val preferencesRepository: UserPreferencesRepository,
     private val ollamaRepository: OllamaRepository,
 ) : ViewModel() {
 
@@ -32,23 +32,23 @@ class ChatViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _agentStatus = MutableStateFlow<String?>(null)
+    val agentStatus: StateFlow<String?> = _agentStatus.asStateFlow()
+
     private val _inputText = MutableStateFlow("")
     val inputText: StateFlow<String> = _inputText.asStateFlow()
 
-    private val _models = MutableStateFlow<List<String>>(emptyList())
-    val models: StateFlow<List<String>> = _models.asStateFlow()
-
-    private val _selectedModel = MutableStateFlow(preferencesRepository.selectedModel)
+    private val _selectedModel = MutableStateFlow("qwen3.5:latest")
     val selectedModel: StateFlow<String> = _selectedModel.asStateFlow()
 
-    private val _selectedMode = MutableStateFlow(preferencesRepository.selectedMode)
-    val selectedMode: StateFlow<String> = _selectedMode.asStateFlow()
-
-    private var agent: AIAgent<String, String> = ollamaRepository.createAgent(
-        _selectedModel.value.ifEmpty { "gemma3:4b" }
-    )
+    private var agent: AIAgent<String, String> = ollamaRepository.createAgent("qwen3.5:latest")
+    private var agentJob: Job? = null
 
     init {
+        AgentStatusProvider.onStatusChange = { status ->
+            _agentStatus.value = status
+        }
+
         val saved = threadRepository.loadThreads()
         if (saved.isNotEmpty()) {
             _threads.value = saved
@@ -56,7 +56,6 @@ class ChatViewModel(
         } else {
             createNewThread()
         }
-        fetchModels()
     }
 
     private fun persistThread(thread: Thread) {
@@ -93,29 +92,11 @@ class ChatViewModel(
         _inputText.value = text
     }
 
-    fun onModelSelected(model: String) {
-        _selectedModel.value = model
-        preferencesRepository.selectedModel = model
-        agent = ollamaRepository.createAgent(model)
-    }
-
-    fun onModeSelected(mode: String) {
-        _selectedMode.value = mode
-        preferencesRepository.selectedMode = mode
-    }
-
-    fun fetchModels() {
-        viewModelScope.launch {
-            val modelNames = ollamaRepository.fetchAvailableModels()
-            _models.value = modelNames
-
-            val saved = _selectedModel.value
-            if (saved.isNotEmpty() && saved in modelNames) {
-                onModelSelected(saved)
-            } else if (modelNames.isNotEmpty()) {
-                onModelSelected(modelNames.first())
-            }
-        }
+    fun stopAgent() {
+        agentJob?.cancel()
+        agentJob = null
+        _agentStatus.value = null
+        _isLoading.value = false
     }
 
     fun sendMessage() {
@@ -127,20 +108,31 @@ class ChatViewModel(
         appendMessageToThread(threadId, userMessage)
         _inputText.value = ""
         _isLoading.value = true
+        _agentStatus.value = "Thinking..."
 
-        viewModelScope.launch {
+        agentJob = viewModelScope.launch {
             try {
                 val result = agent.run(text)
                 val aiMessage = ChatMessage(content = result, isUser = false)
                 appendMessageToThread(threadId, aiMessage)
             } catch (e: Exception) {
-                val errorMessage = ChatMessage(
-                    content = "Error: ${e.message ?: "Unknown error"}",
-                    isUser = false,
-                )
-                appendMessageToThread(threadId, errorMessage)
+                if (e is kotlinx.coroutines.CancellationException) {
+                    val stoppedMessage = ChatMessage(
+                        content = "Stopped by user.",
+                        isUser = false,
+                    )
+                    appendMessageToThread(threadId, stoppedMessage)
+                } else {
+                    val errorMessage = ChatMessage(
+                        content = "Error: ${e.message ?: "Unknown error"}",
+                        isUser = false,
+                    )
+                    appendMessageToThread(threadId, errorMessage)
+                }
             } finally {
+                _agentStatus.value = null
                 _isLoading.value = false
+                agentJob = null
             }
         }
     }

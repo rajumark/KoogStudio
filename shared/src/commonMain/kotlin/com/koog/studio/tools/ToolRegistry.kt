@@ -11,5 +11,6 @@ fun createToolRegistry(): ToolRegistry {
         tool(EditFileTool)
         tool(ListDirectoryTool)
         tool(WriteFileTool)
+        tool(ExecuteCommandTool)
     }
 }
