@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 
 import koogstudio.shared.generated.resources.Res
+import koogstudio.shared.generated.resources.add
 import koogstudio.shared.generated.resources.send
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,9 +50,22 @@ fun App() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(16.dp),
+                        .padding(12.dp, 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        onClick = { viewModel.clearChat() },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.add),
+                            contentDescription = "New Thread",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Koog Agent",
