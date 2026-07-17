@@ -30,11 +30,15 @@ fun ChatInputBar(
     onStop: () -> Unit,
     isLoading: Boolean,
     agentStatus: String?,
+    selectedProvider: String?,
     selectedModel: String,
     availableModels: List<String>,
+    configuredProviders: List<String>,
+    onProviderSelected: (String) -> Unit,
     onModelSelected: (String) -> Unit,
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue(inputText)) }
+    var showProviderMenu by remember { mutableStateOf(false) }
     var showModelMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(inputText) {
@@ -138,42 +142,90 @@ fun ChatInputBar(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFF0F0F0))
-                        .clickable { showModelMenu = true }
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        text = selectedModel,
-                        fontSize = 10.sp,
-                        color = Color(0xFF666666),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showModelMenu,
-                    onDismissRequest = { showModelMenu = false },
-                ) {
-                    availableModels.forEach { model ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = model,
-                                    fontSize = 11.sp,
-                                    color = if (model == selectedModel) Color(0xFF171717) else Color(0xFF666666),
-                                )
-                            },
-                            onClick = {
-                                onModelSelected(model)
-                                showModelMenu = false
-                            },
+            if (configuredProviders.isNotEmpty()) {
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFE8F0FE))
+                            .clickable { showProviderMenu = true }
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = selectedProvider ?: "Select provider",
+                            fontSize = 10.sp,
+                            color = Color(0xFF1A73E8),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
+
+                    DropdownMenu(
+                        expanded = showProviderMenu,
+                        onDismissRequest = { showProviderMenu = false },
+                    ) {
+                        configuredProviders.forEach { provider ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = provider,
+                                        fontSize = 11.sp,
+                                        color = if (provider == selectedProvider) Color(0xFF171717) else Color(0xFF666666),
+                                    )
+                                },
+                                onClick = {
+                                    onProviderSelected(provider)
+                                    showProviderMenu = false
+                                },
+                            )
+                        }
+                    }
                 }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF0F0F0))
+                            .clickable { showModelMenu = true }
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = selectedModel,
+                            fontSize = 10.sp,
+                            color = Color(0xFF666666),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showModelMenu,
+                        onDismissRequest = { showModelMenu = false },
+                    ) {
+                        availableModels.forEach { model ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = model,
+                                        fontSize = 11.sp,
+                                        color = if (model == selectedModel) Color(0xFF171717) else Color(0xFF666666),
+                                    )
+                                },
+                                onClick = {
+                                    onModelSelected(model)
+                                    showModelMenu = false
+                                },
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = "No providers configured — open Settings to add an API key",
+                    fontSize = 10.sp,
+                    color = Color(0xFFBBBBBB),
+                )
             }
         }
     }

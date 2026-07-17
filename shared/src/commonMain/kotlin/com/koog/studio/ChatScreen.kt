@@ -25,8 +25,11 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
     val isLoading by viewModel.isLoading.collectAsState()
     val agentStatus by viewModel.agentStatus.collectAsState()
     val agentLog by viewModel.agentLog.collectAsState()
+    val selectedProvider by viewModel.selectedProvider.collectAsState()
     val selectedModel by viewModel.selectedModel.collectAsState()
     val availableModels by viewModel.availableModels.collectAsState()
+    val configuredProviders by viewModel.configuredProviders.collectAsState()
+    val showSettings by viewModel.showSettings.collectAsState()
     val projectDir by viewModel.projectDir.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -36,6 +39,25 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.lastIndex)
         }
+    }
+
+    if (showSettings) {
+        val initialKeys = remember(configuredProviders) {
+            configuredProviders.associateWith { provider ->
+                viewModel.getApiKey(provider)
+            }
+        }
+
+        SettingsScreen(
+            initialKeys = initialKeys,
+            onSaveKeys = { keys ->
+                keys.forEach { (provider, key) ->
+                    viewModel.saveApiKey(provider, key)
+                }
+            },
+            onClose = { viewModel.closeSettings() },
+        )
+        return
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -70,7 +92,22 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
 
                         Spacer(modifier = Modifier.weight(1f))
 
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFF0F0F0))
+                                .clickable { viewModel.openSettings() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = "Settings",
+                                fontSize = 11.sp,
+                                color = Color(0xFF666666),
+                            )
+                        }
+
                         if (messages.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             Box(
                                 modifier = Modifier
                                     .background(Color(0xFFF0F0F0))
@@ -164,8 +201,11 @@ fun ChatScreen(viewModel: ChatViewModel = koinViewModel()) {
                     onStop = { viewModel.stopAgent() },
                     isLoading = isLoading,
                     agentStatus = agentStatus,
+                    selectedProvider = selectedProvider,
                     selectedModel = selectedModel,
                     availableModels = availableModels,
+                    configuredProviders = configuredProviders,
+                    onProviderSelected = { viewModel.selectProvider(it) },
                     onModelSelected = { viewModel.selectModel(it) },
                 )
             }
