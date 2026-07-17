@@ -28,8 +28,8 @@ object ExecuteCommandTool : SimpleTool<ExecuteCommandTool.Args>(
     data class Args(
         @property:LLMDescription("The shell command to execute (e.g., 'ls -la', 'git status', 'npm test')")
         val command: String,
-        @property:LLMDescription("Working directory for the command. Use project root or appropriate subdirectory")
-        val workingDirectory: String,
+        @property:LLMDescription("Working directory for the command. Defaults to user home directory if not specified.")
+        val workingDirectory: String = System.getProperty("user.home"),
     )
 
     override suspend fun execute(args: Args): String {
@@ -51,15 +51,18 @@ object ExecuteCommandTool : SimpleTool<ExecuteCommandTool.Args>(
 
             val completed = process.waitFor(30, TimeUnit.SECONDS)
 
-            val output = process.inputStream.bufferedReader().readText()
+            val output = process.inputStream.bufferedReader().readText().trim()
 
             if (!completed) {
                 process.destroyForcibly()
-                "Error: Command timed out after 30 seconds\n\n$output"
+                "Timeout after 30s:\n$output"
             } else {
                 val exitCode = process.exitValue()
-                val prefix = if (exitCode == 0) "OK" else "FAILED (exit code: $exitCode)"
-                "$prefix\n\n$output"
+                if (exitCode == 0) {
+                    output
+                } else {
+                    "Exit code $exitCode:\n$output"
+                }
             }
         } catch (e: Exception) {
             "Error executing command: ${e.message}"

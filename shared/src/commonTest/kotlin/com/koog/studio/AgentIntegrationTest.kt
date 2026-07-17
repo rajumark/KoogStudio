@@ -1,6 +1,7 @@
 package com.koog.studio
 
 import com.koog.studio.data.repository.OllamaRepositoryImpl
+import com.koog.studio.tools.AgentStatusProvider
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
@@ -10,8 +11,15 @@ class AgentIntegrationTest {
 
     @Test
     fun testCountImagesOnDesktop() = runBlocking {
+        AgentStatusProvider.onLog = { entry ->
+            println("[LOG] $entry")
+        }
+        AgentStatusProvider.onStatusChange = { status ->
+            println("[STATUS] $status")
+        }
+
         val agent = repository.createAgent("gemma4:12b")
-        val result = agent.run("How many image files (png, jpg, jpeg, gif, bmp, webp) are in the /Users/raju/Desktop folder? Use tools to find out. Just give me the count number.")
+        val result = agent.run("How many image files (png, jpg, gif, etc) are on my Desktop? Give me the exact count.")
         println("=== AGENT RESULT ===")
         println(result)
         println("=== END ===")

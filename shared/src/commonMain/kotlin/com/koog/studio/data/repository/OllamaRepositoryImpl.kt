@@ -13,11 +13,30 @@ import com.koog.studio.tools.AgentStatusProvider
 import com.koog.studio.tools.createToolRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class OllamaRepositoryImpl : OllamaRepository {
 
     private val ollamaClient = OllamaClient()
     private val toolRegistry = createToolRegistry()
+
+    private fun getSystemPrompt(): String {
+        val os = System.getProperty("os.name")
+        val home = System.getProperty("user.home")
+        val user = System.getProperty("user.name")
+        return """You are a helpful AI assistant with access to tools for file operations, shell commands, and user interaction.
+
+System info:
+- OS: $os
+- Home directory: $home
+- Username: $user
+
+Rules:
+- Always use tools to answer questions about files, directories, or system state. Never guess.
+- When a tool fails, try a different approach. Do not give up after one failure.
+- Use absolute paths (starting with $home) instead of ~ when possible.
+- If you don't know something, use tools to find out rather than making assumptions."""
+    }
 
     override fun createAgent(modelId: String): AIAgent<String, String> {
         val model = LLModel(
@@ -31,7 +50,7 @@ class OllamaRepositoryImpl : OllamaRepository {
         )
         return AIAgent(
             promptExecutor = MultiLLMPromptExecutor(ollamaClient),
-            systemPrompt = "You are a helpful AI assistant. You have access to tools for file operations and user interaction. Use tools when needed to help the user.",
+            systemPrompt = getSystemPrompt(),
             llmModel = model,
             toolRegistry = toolRegistry,
             installFeatures = {
