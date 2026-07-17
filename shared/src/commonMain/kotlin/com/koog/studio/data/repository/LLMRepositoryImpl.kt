@@ -9,7 +9,7 @@ import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.google.GoogleLLMClient
 import ai.koog.prompt.executor.clients.google.GoogleModels
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
-import ai.koog.prompt.llm.LLMProvider
+import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.MessagePart
 import com.koog.studio.domain.repository.LLMRepository
 import com.koog.studio.domain.repository.SettingsRepository
@@ -40,6 +40,32 @@ Rules:
 - If you don't know something, use tools to find out rather than making assumptions."""
     }
 
+    private val allModels: Map<String, List<LLModel>> = mapOf(
+        "OpenAI" to listOf(
+            OpenAIModels.Chat.GPT4o,
+            OpenAIModels.Chat.GPT4oMini,
+            OpenAIModels.Chat.GPT4_1,
+            OpenAIModels.Chat.GPT4_1Mini,
+            OpenAIModels.Chat.O3Mini,
+        ),
+        "Anthropic" to listOf(
+            AnthropicModels.Opus_4_1,
+            AnthropicModels.Sonnet_4_5,
+            AnthropicModels.Sonnet_4,
+            AnthropicModels.Haiku_4_5,
+        ),
+        "Google" to listOf(
+            GoogleModels.Gemini2_5Pro,
+            GoogleModels.Gemini2_5Flash,
+            GoogleModels.Gemini2_5FlashLite,
+        ),
+    )
+
+    private fun findModel(provider: String, modelId: String): LLModel {
+        return allModels[provider]?.find { it.id == modelId }
+            ?: error("Unknown model: $modelId for provider: $provider")
+    }
+
     override fun createAgent(provider: String, modelId: String): AIAgent<String, String> {
         val apiKey = settingsRepository.getApiKey(provider)
             ?: error("No API key configured for $provider")
@@ -51,22 +77,7 @@ Rules:
             else -> error("Unsupported provider: $provider")
         }
 
-        val llmProvider = when (provider) {
-            "OpenAI" -> LLMProvider.OpenAI
-            "Anthropic" -> LLMProvider.Anthropic
-            "Google" -> LLMProvider.Google
-            else -> error("Unsupported provider: $provider")
-        }
-
-        val model = ai.koog.prompt.llm.LLModel(
-            provider = llmProvider,
-            id = modelId,
-            capabilities = listOf(
-                ai.koog.prompt.llm.LLMCapability.Temperature,
-                ai.koog.prompt.llm.LLMCapability.Schema.JSON.Basic,
-            ),
-            contextLength = 131_072,
-        )
+        val model = findModel(provider, modelId)
 
         return AIAgent(
             promptExecutor = executor,
@@ -116,35 +127,10 @@ Rules:
     }
 
     override fun getModelsForProvider(provider: String): List<String> {
-        return when (provider) {
-            "OpenAI" -> listOf(
-                OpenAIModels.Chat.GPT4o.id,
-                OpenAIModels.Chat.GPT4oMini.id,
-                OpenAIModels.Chat.GPT4_1.id,
-                OpenAIModels.Chat.GPT4_1Mini.id,
-                OpenAIModels.Chat.O3Mini.id,
-            )
-            "Anthropic" -> listOf(
-                AnthropicModels.Opus_4_1.id,
-                AnthropicModels.Sonnet_4_5.id,
-                AnthropicModels.Sonnet_4.id,
-                AnthropicModels.Haiku_4_5.id,
-            )
-            "Google" -> listOf(
-                GoogleModels.Gemini2_5Pro.id,
-                GoogleModels.Gemini2_5Flash.id,
-                GoogleModels.Gemini2_5FlashLite.id,
-            )
-            else -> emptyList()
-        }
+        return allModels[provider]?.map { it.id } ?: emptyList()
     }
 
     override fun getDefaultModel(provider: String): String {
-        return when (provider) {
-            "OpenAI" -> OpenAIModels.Chat.GPT4o.id
-            "Anthropic" -> AnthropicModels.Sonnet_4_5.id
-            "Google" -> GoogleModels.Gemini2_5Flash.id
-            else -> getModelsForProvider(provider).firstOrNull() ?: ""
-        }
+        return allModels[provider]?.firstOrNull()?.id ?: ""
     }
 }
